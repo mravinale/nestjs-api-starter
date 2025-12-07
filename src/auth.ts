@@ -65,10 +65,17 @@ export const auth = betterAuth({
         autoSignInAfterVerification: true,
         expiresIn: 3600, // 1 hour
         sendVerificationEmail: async (payload) => {
+            // Modify the callbackURL to point to the frontend
+            const feUrl = process.env.FE_URL || "http://localhost:5173";
+            const urlObj = new URL(payload.url);
+            urlObj.searchParams.set('callbackURL', feUrl);
+            const modifiedPayload = { ...payload, url: urlObj.toString() };
+            
             if (emailServiceInstance) {
-                await emailServiceInstance.sendEmailVerification(payload as any);
+                await emailServiceInstance.sendEmailVerification(modifiedPayload as any);
             } else {
                 console.log("[Email Verification] Email (no service):", payload.user.email);
+                console.log("[Email Verification] URL:", modifiedPayload.url);
             }
         },
     },
