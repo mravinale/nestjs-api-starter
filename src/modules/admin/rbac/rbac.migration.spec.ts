@@ -16,6 +16,11 @@ describe('RbacMigrationService', () => {
       queryOne: jest.fn<() => Promise<unknown | null>>().mockResolvedValue(null),
       hasMigrationRun: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
       recordMigration: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      transaction: jest.fn<(callback: (query: (sql: string, params?: unknown[]) => Promise<unknown[]>) => Promise<unknown>) => Promise<unknown>>()
+        .mockImplementation(async (callback) => {
+          const mockQuery = jest.fn<(sql: string, params?: unknown[]) => Promise<unknown[]>>().mockResolvedValue([]);
+          return callback(mockQuery);
+        }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

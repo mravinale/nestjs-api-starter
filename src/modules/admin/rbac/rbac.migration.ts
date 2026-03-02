@@ -317,54 +317,61 @@ export class RbacMigrationService implements OnModuleInit {
    * Align Manager role permissions with the intended RBAC matrix.
    * Adds: role:assign, role:update
    * Removes: organization:create, organization:update, user:set-password, user:set-role, user:impersonate, user:create, user:delete
+   * 
+   * Note: This runs inside a transaction for atomicity.
    */
   async alignManagerPermissions(): Promise<void> {
-    const managerRole = await this.db.queryOne<{ id: string }>(
-      `SELECT id FROM roles WHERE name = 'manager'`,
-    );
-    if (!managerRole) return;
+    await this.db.transaction(async (query) => {
+      const managerRoleRows = await query(
+        `SELECT id FROM roles WHERE name = 'manager'`,
+      ) as { id: string }[];
+      const managerRole = managerRoleRows[0] ?? null;
+      if (!managerRole) return;
 
-    const permissionsToAdd = [
-      { resource: 'role', action: 'assign' },
-      { resource: 'role', action: 'update' },
-    ];
+      const permissionsToAdd = [
+        { resource: 'role', action: 'assign' },
+        { resource: 'role', action: 'update' },
+      ];
 
-    for (const perm of permissionsToAdd) {
-      const permission = await this.db.queryOne<{ id: string }>(
-        `SELECT id FROM permissions WHERE resource = $1 AND action = $2`,
-        [perm.resource, perm.action],
-      );
-      if (permission) {
-        await this.db.query(
-          `INSERT INTO role_permissions (role_id, permission_id)
-           VALUES ($1, $2)
-           ON CONFLICT DO NOTHING`,
-          [managerRole.id, permission.id],
-        );
+      for (const perm of permissionsToAdd) {
+        const permRows = await query(
+          `SELECT id FROM permissions WHERE resource = $1 AND action = $2`,
+          [perm.resource, perm.action],
+        ) as { id: string }[];
+        const permission = permRows[0] ?? null;
+        if (permission) {
+          await query(
+            `INSERT INTO role_permissions (role_id, permission_id)
+             VALUES ($1, $2)
+             ON CONFLICT DO NOTHING`,
+            [managerRole.id, permission.id],
+          );
+        }
       }
-    }
 
-    const permissionsToRemove = [
-      { resource: 'organization', action: 'create' },
-      { resource: 'organization', action: 'update' },
-      { resource: 'user', action: 'set-password' },
-      { resource: 'user', action: 'set-role' },
-      { resource: 'user', action: 'impersonate' },
-      { resource: 'user', action: 'create' },
-      { resource: 'user', action: 'delete' },
-    ];
+      const permissionsToRemove = [
+        { resource: 'organization', action: 'create' },
+        { resource: 'organization', action: 'update' },
+        { resource: 'user', action: 'set-password' },
+        { resource: 'user', action: 'set-role' },
+        { resource: 'user', action: 'impersonate' },
+        { resource: 'user', action: 'create' },
+        { resource: 'user', action: 'delete' },
+      ];
 
-    for (const perm of permissionsToRemove) {
-      const permission = await this.db.queryOne<{ id: string }>(
-        `SELECT id FROM permissions WHERE resource = $1 AND action = $2`,
-        [perm.resource, perm.action],
-      );
-      if (permission) {
-        await this.db.query(
-          `DELETE FROM role_permissions WHERE role_id = $1 AND permission_id = $2`,
-          [managerRole.id, permission.id],
-        );
+      for (const perm of permissionsToRemove) {
+        const permRows = await query(
+          `SELECT id FROM permissions WHERE resource = $1 AND action = $2`,
+          [perm.resource, perm.action],
+        ) as { id: string }[];
+        const permission = permRows[0] ?? null;
+        if (permission) {
+          await query(
+            `DELETE FROM role_permissions WHERE role_id = $1 AND permission_id = $2`,
+            [managerRole.id, permission.id],
+          );
+        }
       }
-    }
+    });
   }
 }
