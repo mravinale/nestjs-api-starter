@@ -57,8 +57,8 @@ describe('RbacController metadata', () => {
     );
   });
 
-  it('returns all permissions for admin in getMyPermissions', async () => {
-    permissionService.findAll.mockResolvedValue([
+  it('returns DB-based permissions for admin in getMyPermissions', async () => {
+    roleService.getUserPermissions.mockResolvedValue([
       { id: '1', resource: 'organization', action: 'create' },
       { id: '2', resource: 'user', action: 'read' },
     ]);
@@ -70,8 +70,7 @@ describe('RbacController metadata', () => {
     expect(result).toEqual({
       data: ['organization:create', 'user:read'],
     });
-    expect(permissionService.findAll).toHaveBeenCalled();
-    expect(roleService.getUserPermissions).not.toHaveBeenCalled();
+    expect(roleService.getUserPermissions).toHaveBeenCalledWith('admin');
   });
 
   it('returns role-based permissions for non-admin in getMyPermissions', async () => {
@@ -114,13 +113,13 @@ describe('RbacController metadata', () => {
     });
   });
 
-  it('requires admin role on RBAC write operations', () => {
+  it('does not apply method-level @Roles on RBAC write operations (permissions-only)', () => {
     const methods = ['createRole', 'updateRole', 'deleteRole', 'assignPermissions'] as const;
 
     methods.forEach((methodName) => {
       const handler = (controller as unknown as Record<string, unknown>)[methodName] as object;
-      const roles = Reflect.getMetadata(ROLES_KEY, handler) as string[];
-      expect(roles).toEqual(['admin']);
+      const roles = Reflect.getMetadata(ROLES_KEY, handler) as string[] | undefined;
+      expect(roles).toBeUndefined();
     });
   });
 

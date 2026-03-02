@@ -16,6 +16,11 @@ describe('RbacMigrationService', () => {
       queryOne: jest.fn<() => Promise<unknown | null>>().mockResolvedValue(null),
       hasMigrationRun: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
       recordMigration: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      transaction: jest.fn<(callback: (query: (sql: string, params?: unknown[]) => Promise<unknown[]>) => Promise<unknown>) => Promise<unknown>>()
+        .mockImplementation(async (callback) => {
+          const mockQuery = jest.fn<(sql: string, params?: unknown[]) => Promise<unknown[]>>().mockResolvedValue([]);
+          return callback(mockQuery);
+        }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -39,7 +44,8 @@ describe('RbacMigrationService', () => {
         .mockResolvedValueOnce(true)   // rbac_001 already run
         .mockResolvedValueOnce(true)   // rbac_002 already run
         .mockResolvedValueOnce(true)   // rbac_003 already run
-        .mockResolvedValueOnce(true);  // rbac_004 already run
+        .mockResolvedValueOnce(true)   // rbac_004 already run
+        .mockResolvedValueOnce(true);  // rbac_005 already run
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       await service.runTrackedMigrations();
@@ -56,7 +62,8 @@ describe('RbacMigrationService', () => {
         .mockResolvedValueOnce(true)    // rbac_001 already run
         .mockResolvedValueOnce(false)   // rbac_002 NOT run
         .mockResolvedValueOnce(false)   // rbac_003 NOT run
-        .mockResolvedValueOnce(false);  // rbac_004 NOT run
+        .mockResolvedValueOnce(false)   // rbac_004 NOT run
+        .mockResolvedValueOnce(false);  // rbac_005 NOT run
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       await service.runTrackedMigrations();
@@ -66,13 +73,16 @@ describe('RbacMigrationService', () => {
       expect(dbService.recordMigration).toHaveBeenCalledWith(
         'rbac_004_add_manager_org_create_permission',
       );
+      expect(dbService.recordMigration).toHaveBeenCalledWith(
+        'rbac_005_align_manager_permissions_with_rbac_matrix',
+      );
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('3 new'),
+        expect.stringContaining('4 new'),
       );
       consoleSpy.mockRestore();
     });
 
-    it('should check all four RBAC migrations', async () => {
+    it('should check all five RBAC migrations', async () => {
       dbService.hasMigrationRun.mockResolvedValue(true);
 
       jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -83,6 +93,9 @@ describe('RbacMigrationService', () => {
       expect(dbService.hasMigrationRun).toHaveBeenCalledWith('rbac_003_seed_default_data');
       expect(dbService.hasMigrationRun).toHaveBeenCalledWith(
         'rbac_004_add_manager_org_create_permission',
+      );
+      expect(dbService.hasMigrationRun).toHaveBeenCalledWith(
+        'rbac_005_align_manager_permissions_with_rbac_matrix',
       );
     });
   });

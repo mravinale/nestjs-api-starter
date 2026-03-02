@@ -346,10 +346,9 @@ export class AdminOrganizationsController {
   }
 
   /**
-   * Update an organization (admin only)
+   * Update an organization
    */
   @Put(':id')
-  @Roles('admin')
   @RequirePermissions('organization:update')
   async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto) {
     const org = await this.orgService.update(id, dto);
@@ -360,10 +359,9 @@ export class AdminOrganizationsController {
   }
 
   /**
-   * Delete an organization (admin only)
+   * Delete an organization
    */
   @Delete(':id')
-  @Roles('admin')
   @RequirePermissions('organization:delete')
   async delete(@Param('id') id: string) {
     try {

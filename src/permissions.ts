@@ -30,6 +30,15 @@ export const adminRole = ac.newRole({
 });
 
 // Manager role - can manage users/sessions within their organization
+// NOTE: This static definition represents the INITIAL capabilities. The migration
+// `rbac_005_align_manager_permissions_with_rbac_matrix` (in rbac.migration.ts)
+// adjusts the DB permissions at runtime to be MORE RESTRICTIVE:
+//   - REMOVES: organization:create, organization:update, user:set-password, user:set-role, 
+//              user:impersonate, user:create, user:delete
+//   - ADDS: role:assign, role:update
+// The static definition here is kept BROADER for backward compatibility and to
+// support the Better Auth admin plugin's access control checks. The actual
+// permissions enforced in the DB are controlled by the migration.
 export const managerRole = ac.newRole({
   user: ["create", "list", "get", "update", "ban", "set-role", "set-password"],
   session: ["list", "revoke"],
