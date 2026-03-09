@@ -32,6 +32,10 @@ export class RbacMigrationService implements OnModuleInit {
         name: 'rbac_006_assign_all_permissions_to_admin',
         up: () => this.assignAllPermissionsToAdmin(),
       },
+      {
+        name: 'rbac_007_remove_session_delete_permission',
+        up: () => this.removeSessionDeletePermission(),
+      },
     ];
 
     let pendingCount = 0;
@@ -426,5 +430,18 @@ export class RbacMigrationService implements OnModuleInit {
         [adminRole.id, perm.id],
       );
     }
+  }
+
+  async removeSessionDeletePermission(): Promise<void> {
+    await this.db.query(
+      `DELETE FROM role_permissions
+       WHERE permission_id IN (
+         SELECT id FROM permissions WHERE resource = 'session' AND action = 'delete'
+       )`,
+    );
+
+    await this.db.query(
+      `DELETE FROM permissions WHERE resource = 'session' AND action = 'delete'`,
+    );
   }
 }

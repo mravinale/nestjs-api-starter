@@ -191,6 +191,19 @@ export class AdminOrganizationsService {
     };
   }
 
+  async checkSlug(slug: string): Promise<{ available: boolean }> {
+    const normalizedSlug = slug.trim().toLowerCase();
+    if (!normalizedSlug) {
+      throw new BadRequestException('slug is required');
+    }
+    if (!this.slugRegex.test(normalizedSlug)) {
+      throw new BadRequestException('invalid slug');
+    }
+
+    const existing = await this.orgRepo.findBySlug(normalizedSlug);
+    return { available: !existing };
+  }
+
   /**
    * Update an organization
    */

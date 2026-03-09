@@ -58,19 +58,12 @@ export class RbacController {
 
   /**
    * Get the current authenticated user's effective permissions.
-   * Admin users receive all permissions; others receive their DB role_permissions.
+   * Permissions are derived from DB role_permissions for all currently allowed roles.
    * Accessible by any authenticated admin/manager (class-level @Roles already enforces this).
    */
   @Get('my-permissions')
   async getMyPermissions(@Session() session: UserSession) {
     const userRole = session?.user?.role as string;
-
-    if (userRole === 'admin') {
-      const allPermissions = await this.permissionService.findAll();
-      return {
-        data: allPermissions.map((p) => `${p.resource}:${p.action}`),
-      };
-    }
 
     const permissions = await this.roleService.getUserPermissions(userRole);
     return {

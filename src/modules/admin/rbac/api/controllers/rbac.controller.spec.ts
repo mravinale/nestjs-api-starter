@@ -57,8 +57,8 @@ describe('RbacController metadata', () => {
     );
   });
 
-  it('returns all permissions for admin in getMyPermissions', async () => {
-    permissionService.findAll.mockResolvedValue([
+  it('returns role-based permissions for admin in getMyPermissions', async () => {
+    roleService.getUserPermissions.mockResolvedValue([
       { id: '1', resource: 'organization', action: 'create' },
       { id: '2', resource: 'user', action: 'read' },
     ]);
@@ -70,8 +70,8 @@ describe('RbacController metadata', () => {
     expect(result).toEqual({
       data: ['organization:create', 'user:read'],
     });
-    expect(permissionService.findAll).toHaveBeenCalled();
-    expect(roleService.getUserPermissions).not.toHaveBeenCalled();
+    expect(roleService.getUserPermissions).toHaveBeenCalledWith('admin');
+    expect(permissionService.findAll).not.toHaveBeenCalled();
   });
 
   it('returns role-based permissions for non-admin in getMyPermissions', async () => {

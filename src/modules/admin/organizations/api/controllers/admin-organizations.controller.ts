@@ -134,6 +134,22 @@ export class AdminOrganizationsController {
     return { data: org };
   }
 
+  @Get('check-slug')
+  @RequirePermissions('organization:create')
+  async checkSlug(@Session() _session: UserSession, @Query('slug') slug: string) {
+    const normalizedSlug = slug?.trim().toLowerCase();
+    if (!normalizedSlug) {
+      throw new HttpException('slug is required', HttpStatus.BAD_REQUEST);
+    }
+    if (!this.slugRegex.test(normalizedSlug)) {
+      throw new HttpException('invalid slug', HttpStatus.BAD_REQUEST);
+    }
+
+    return {
+      data: await this.orgService.checkSlug(normalizedSlug),
+    };
+  }
+
   /**
    * Get organization membership roles metadata
    * Returns the available roles from the database

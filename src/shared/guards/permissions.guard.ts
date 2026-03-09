@@ -44,10 +44,6 @@ export class PermissionsGuard implements CanActivate {
 
     const userRole = session.user.role;
 
-    if (userRole === 'admin') {
-      return true;
-    }
-
     const userPermissions = await this.getUserPermissions(userRole);
 
     const hasAllPermissions = requiredPermissions.every((permission) =>

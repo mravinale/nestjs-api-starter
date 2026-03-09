@@ -18,6 +18,7 @@ describe('AdminOrganizationsController', () => {
   beforeEach(() => {
     orgService = {
       create: jest.fn(),
+      checkSlug: jest.fn(),
       getRoles: jest.fn().mockImplementation(async () => ({ roles: [], assignableRoles: [] })),
       findAll: jest.fn(),
       findById: jest.fn(),
@@ -161,6 +162,25 @@ describe('AdminOrganizationsController', () => {
     it('throws when slug has invalid format — covers !slugRegex branch', async () => {
       const session = { user: { id: 'admin-1', role: 'admin' }, session: {} } as unknown as UserSession;
       await expect(controller.create(session, { name: 'Org', slug: 'Invalid Slug!' })).rejects.toThrow('invalid slug');
+    });
+  });
+
+  describe('checkSlug', () => {
+    it('returns availability from service for valid slug', async () => {
+      (orgService as any).checkSlug.mockResolvedValue({ available: true });
+      const session = { user: { id: 'admin-1', role: 'admin' }, session: {} } as unknown as UserSession;
+
+      const result = await (controller as any).checkSlug(session, 'fresh-org');
+
+      expect((orgService as any).checkSlug).toHaveBeenCalledWith('fresh-org');
+      expect(result).toEqual({ data: { available: true } });
+    });
+
+    it('throws when slug format is invalid', async () => {
+      const session = { user: { id: 'admin-1', role: 'admin' }, session: {} } as unknown as UserSession;
+
+      await expect((controller as any).checkSlug(session, 'Invalid Slug!')).rejects.toThrow('invalid slug');
+      expect((orgService as any).checkSlug).not.toHaveBeenCalled();
     });
   });
 

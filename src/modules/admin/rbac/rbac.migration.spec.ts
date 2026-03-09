@@ -41,7 +41,8 @@ describe('RbacMigrationService', () => {
         .mockResolvedValueOnce(true)   // rbac_003 already run
         .mockResolvedValueOnce(true)   // rbac_004 already run
         .mockResolvedValueOnce(true)   // rbac_005 already run
-        .mockResolvedValueOnce(true);  // rbac_006 already run
+        .mockResolvedValueOnce(true)   // rbac_006 already run
+        .mockResolvedValueOnce(true);  // rbac_007 already run
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       await service.runTrackedMigrations();
@@ -60,7 +61,8 @@ describe('RbacMigrationService', () => {
         .mockResolvedValueOnce(false)   // rbac_003 NOT run
         .mockResolvedValueOnce(false)   // rbac_004 NOT run
         .mockResolvedValueOnce(true)    // rbac_005 already run
-        .mockResolvedValueOnce(false);  // rbac_006 NOT run
+        .mockResolvedValueOnce(false)   // rbac_006 NOT run
+        .mockResolvedValueOnce(false);  // rbac_007 NOT run
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       await service.runTrackedMigrations();
@@ -73,13 +75,16 @@ describe('RbacMigrationService', () => {
       expect(dbService.recordMigration).toHaveBeenCalledWith(
         'rbac_006_assign_all_permissions_to_admin',
       );
+      expect(dbService.recordMigration).toHaveBeenCalledWith(
+        'rbac_007_remove_session_delete_permission',
+      );
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('4 new'),
+        expect.stringContaining('5 new'),
       );
       consoleSpy.mockRestore();
     });
 
-    it('should check all four RBAC migrations', async () => {
+    it('should check all tracked RBAC migrations', async () => {
       dbService.hasMigrationRun.mockResolvedValue(true);
 
       jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -96,6 +101,9 @@ describe('RbacMigrationService', () => {
       );
       expect(dbService.hasMigrationRun).toHaveBeenCalledWith(
         'rbac_006_assign_all_permissions_to_admin',
+      );
+      expect(dbService.hasMigrationRun).toHaveBeenCalledWith(
+        'rbac_007_remove_session_delete_permission',
       );
     });
   });
@@ -284,6 +292,19 @@ describe('RbacMigrationService', () => {
       expect(dbService.query).not.toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO role_permissions'),
         expect.anything(),
+      );
+    });
+  });
+
+  describe('removeSessionDeletePermission', () => {
+    it('should remove orphan session:delete permissions and role assignments', async () => {
+      await (service as any).removeSessionDeletePermission();
+
+      expect(dbService.query).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM role_permissions'),
+      );
+      expect(dbService.query).toHaveBeenCalledWith(
+        expect.stringContaining("DELETE FROM permissions WHERE resource = 'session' AND action = 'delete'"),
       );
     });
   });

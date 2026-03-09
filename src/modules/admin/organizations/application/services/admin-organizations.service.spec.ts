@@ -469,6 +469,27 @@ describe('AdminOrganizationsService', () => {
     });
   });
 
+  describe('checkSlug', () => {
+    it('should return available=true when slug is not taken', async () => {
+      orgRepo.findBySlug.mockResolvedValue(null);
+
+      await expect((service as any).checkSlug('fresh-org')).resolves.toEqual({ available: true });
+      expect(orgRepo.findBySlug).toHaveBeenCalledWith('fresh-org');
+    });
+
+    it('should return available=false when slug already exists', async () => {
+      orgRepo.findBySlug.mockResolvedValue({ id: 'org-1' });
+
+      await expect((service as any).checkSlug('test-org')).resolves.toEqual({ available: false });
+      expect(orgRepo.findBySlug).toHaveBeenCalledWith('test-org');
+    });
+
+    it('should throw BadRequestException when slug format is invalid', async () => {
+      await expect((service as any).checkSlug('Invalid Slug!')).rejects.toBeInstanceOf(BadRequestException);
+      expect(orgRepo.findBySlug).not.toHaveBeenCalled();
+    });
+  });
+
   describe('update', () => {
     it('should update organization name', async () => {
       orgRepo.findById.mockResolvedValueOnce(mockOrganization);

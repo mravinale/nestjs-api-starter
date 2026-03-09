@@ -68,10 +68,21 @@ describe('PermissionsGuard', () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['user:read']);
     });
 
-    it('should allow access for admin role without RoleService call', async () => {
+    it('should allow access for admin when DB grants required permissions', async () => {
+      roleService.getUserPermissions.mockResolvedValueOnce([
+        makePermission('user', 'read'),
+      ]);
       const context = createMockExecutionContext({ user: { role: 'admin' } });
       await expect(guard.canActivate(context)).resolves.toBe(true);
-      expect(roleService.getUserPermissions).not.toHaveBeenCalled();
+      expect(roleService.getUserPermissions).toHaveBeenCalledWith('admin');
+    });
+
+    it('should deny access for admin missing required permissions', async () => {
+      roleService.getUserPermissions.mockResolvedValueOnce([
+        makePermission('role', 'read'),
+      ]);
+      const context = createMockExecutionContext({ user: { role: 'admin' } });
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
     });
 
     it('should allow access for non-admin with required permissions', async () => {
